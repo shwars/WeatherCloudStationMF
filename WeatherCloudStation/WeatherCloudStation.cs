@@ -28,6 +28,9 @@ namespace WeatherCloudStation
             while (true)
             {
                 Debug.Print("Getting readings...");
+                double pressure = sensor.GetPressure() / 100.0F;
+                double pressuremm = pressure * 0.75006375541921;
+                Debug.Print("Pressure:    " + pressuremm.ToString() + " mmHg");
                 double temperature = sensor.GetTemperature();
                 Debug.Print("Temperature: " + temperature.ToString() + " C");
                 Debug.Print("\n");
