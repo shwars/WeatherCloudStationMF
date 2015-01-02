@@ -13,9 +13,13 @@ namespace WeatherCloudStation
 {
     public class WeatherCloudStation
     {
+
+        protected const bool send_data = true; // Send data to the cloud
+        protected const int interval = 60; // Measurement interval in seconds
         public static void Main()
         {
             Debug.Print("Execution begins...");
+            SecretLabs.NETMF.Hardware.AnalogInput photo_in = new SecretLabs.NETMF.Hardware.AnalogInput(Pins.GPIO_PIN_A0);
             OutputPort pin = new OutputPort(Pins.GPIO_PIN_SDA, true);
             Thread.Sleep(200);
             pin.Write(false);
@@ -33,34 +37,48 @@ namespace WeatherCloudStation
                 Debug.Print("Pressure:    " + pressuremm.ToString() + " mmHg");
                 double temperature = sensor.GetTemperature();
                 Debug.Print("Temperature: " + temperature.ToString() + " C");
+                int lum = photo_in.Read();
+                Debug.Print("Luminocity: " + lum.ToString());
                 Debug.Print("\n");
 
-                int tempcode = (int)(temperature * 100);
-
-                var url = "http://weathermon.cloudapp.net/api/Temperature/" + tempcode.ToString();
-                Debug.Print("Sending data via url " + url);
-
-                using (var req = (HttpWebRequest)WebRequest.Create(url))
+                if (send_data)
                 {
-                    req.Method = "GET";
-                    using (var resp = req.GetResponse())
-                    {
-                        var buffer = new byte[(int)resp.ContentLength];
-                        Stream stream = resp.GetResponseStream();
-                        int toRead = buffer.Length;
-                        while (toRead > 0)
-                        {
-                            // already read: buffer.Length - toRead
-                            int read = stream.Read(buffer, buffer.Length - toRead, toRead);
-                            toRead = toRead - read;
-                        }
-                        char[] chars = Encoding.UTF8.GetChars(buffer);
-                        Debug.Print(new string(chars));
-                    }
+                    record("Temperature", (int)(temperature * 100));
+                    record("Pressure", (int)(pressuremm * 10));
+                    record("Luminocity", lum);
                 }
-                Thread.Sleep(1000 * 60);
+                Thread.Sleep(1000 * interval);
             }
         }
+
+        private static void record(string measurement, int value)
+        {
+            var s = GetUrl("http://weathermon.cloudapp.net/api/" + measurement + "/" + value.ToString());
+        }
+
+        private static string GetUrl(string url)
+        {
+            Debug.Print("Sending data via url " + url);
+            using (var req = (HttpWebRequest)WebRequest.Create(url))
+            {
+                req.Method = "GET";
+                using (var resp = req.GetResponse())
+                {
+                    var buffer = new byte[(int)resp.ContentLength];
+                    Stream stream = resp.GetResponseStream();
+                    int toRead = buffer.Length;
+                    while (toRead > 0)
+                    {
+                        // already read: buffer.Length - toRead
+                        int read = stream.Read(buffer, buffer.Length - toRead, toRead);
+                        toRead = toRead - read;
+                    }
+                    char[] chars = Encoding.UTF8.GetChars(buffer);
+                    return new string(chars);
+                }
+            }
+        }
+
 
     }
 }
