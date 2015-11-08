@@ -15,7 +15,7 @@ namespace WeatherCloudStation
     {
 
         protected const bool send_data = true; // Send data to the cloud
-        protected const int interval = 60; // Measurement interval in seconds
+        protected const int interval = 120; // Measurement interval in seconds
         public static void Main()
         {
             Debug.Print("Execution begins...");
@@ -43,9 +43,13 @@ namespace WeatherCloudStation
 
                 if (send_data)
                 {
-                    record("Temperature", (int)(temperature * 100));
-                    record("Pressure", (int)(pressuremm * 10));
-                    record("Luminocity", lum);
+                    try
+                    {
+                        record("Temperature", (int)(temperature * 100));
+                        record("Pressure", (int)(pressuremm * 10));
+                        record("Luminocity", lum);
+                    }
+                    catch { }
                 }
                 Thread.Sleep(1000 * interval);
             }
@@ -53,7 +57,11 @@ namespace WeatherCloudStation
 
         private static void record(string measurement, int value)
         {
-            var s = GetUrl("http://weathermon.cloudapp.net/api/" + measurement + "/" + value.ToString());
+            try
+            {
+                var s = GetUrl("http://weathermon.cloudapp.net/api/" + measurement + "/" + value.ToString());
+            }
+            catch { }
         }
 
         private static string GetUrl(string url)
